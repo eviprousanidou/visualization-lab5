@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script type="text/javascript" src="https://d3js.org/d3.v6.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.css">
+  <link rel="stylesheet" href="style.css" />
+  <script type="text/javascript" src = "script.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Coffee House Chains </h1>
+    <h2>A ranking of selected leading coffee house chains worldwide</h2>
+
+    <div class="dropdown">
+      <h4>Group By</h4>
+      <select id="group">
+        <option value="stores">Stores worldwide</option>
+        <option value="revenue">Revenue in billion U.S. dollars</option>
+      </select>
+    </div>
+
+    <button class="sorting"> Sort </button>
+
+    <div class="graph"></div>
+      <svg class="graph"></svg>
+    </div>
+
+  </div>
+</body>
+
+<script>
+
+  /* Get Data */
+  d3.csv("coffee-house-chains.csv", d3.autoType).then(data => {
+    update(data, group, decr);
+
+    d3.select('#group').on('change', (e) => {
+      group = e.target.value
+      update(data, group, decr);
+    });
+
+    d3.select('.sorting').on('click', () => {
+      decr = !decr
+      update(data, group, decr);
+    });
+
+  });
+
+  const margin = { top: 30, left: 50, bottom: 30, right: 30 };
+  const width = 750 - margin.left - margin.bottom;
+  const height = 600 - margin.top - margin.bottom;
+    
+  const xScale = d3.scaleBand()
+    .rangeRound([0, width])
+    .paddingInner(0.2);
+        
+  const yScale = d3.scaleLinear()
+    .range([height, 0]);
+        
+  const svg = d3.select('.graph')
+    .append('svg')
+    .attr('width', width + margin.left + margin.right)
+    .attr('height', height + margin.top + margin.bottom)
+    .append('g')
+    .attr('transform', 'translate(' + margin.left + ',' + margin.right + ')');
+    
+  svg.append('g')
+    .attr("class", "y-axis");
+
+  svg.append('g')
+    .attr("class", "x-axis")
+    .attr("transform", `translate(0, ${height})`);
+
+  svg.append("text")
+    .attr("class", "y-label")
+    .attr("x", -margin.left)
+    .attr("y", -10)
+    .attr("text-anchor", "start");
+
+
+  /* set default values*/
+  let decr = true;
+  let group = 'stores';
+
+  /* sorting */
+  function update(data, group, decr) {
+    if (decr) {
+      data.sort((a, b) => a[group] - b[group]).reverse();
+    }
+    else {
+      data.sort((a, b) => a[group] - b[group]);
+    }
+
+  /*Scales */
+  xScale.domain(data.map(d => d.company));
+
+  yScale.domain([0, d3.max(data, d => d[group])]);
+
+
+  const bars = svg.selectAll('.bars')
+    .data(data);
+
+  bars.enter()
+    .append("rect")
+    .attr("class", "bars")
+    .attr('x', d => xScale(d.company))
+    .attr("width", xScale.bandwidth())
+    .merge(bars)
+    .transition()
+    .duration(1000)
+    .attr('y', d => yScale(d[group]))
+    .attr("height", d => height - yScale(d[group]));
+
+  bars
+    .exit()
+    .transition()
+    .duration(1000)
+    .attr('y', height)
+    .remove();
+
+  /* Axes */
+  const xAxis = d3.axisBottom(xScale)
+    .ticks(5, 's');
+  const yAxis = d3.axisLeft(yScale)
+    .ticks(10);
+
+  svg.select('.x-axis')
+    .transition()
+    .duration(1000)
+    .call(xAxis);
+
+  svg.select('.y-axis')
+    .transition()
+    .duration(1000)
+    .call(yAxis);
+
+  svg.select(".y-label")
+    .text(function (d) {
+      if (group == 'stores') { return "Stores" } 
+      else { return "Billion USD" };
+    });
+
+  }
+
+</script>
+
+</html>
